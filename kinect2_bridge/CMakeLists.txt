@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kinect2_bridge)
+set(CMAKE_BUILD_TYPE Release)
+OPTION(ENABLE_TEGRA_JPEG "Enable accelerated Tegra JPEG library" ON)
+OPTION(ENABLE_CUDA "Enable CUDA support" ON)
+OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
+OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
+SET(MY_DIR "/home/ubuntu/Desktop/libfreenect2/examples/protonect")
+
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBT_USE_DOUBLE_PRECISION -Wall")
 # Unused warnings
@@ -19,6 +26,31 @@ ELSE()
   MESSAGE(ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 ENDIF()
 
+
+
+	add_definitions("-DLIBFREENECT2_WITH_OPENGL_SUPPORT")
+	#cmakedefine LIBFREENECT2_WITH_OPENGL_SUPPORT
+	#add_definitions("-DLIBFREENECT2_WITH_OPENCL_SUPPORT")
+	#cmakedefine LIBFREENECT2_WITH_OPENCL_SUPPORT
+	add_definitions("-DLIBFREENECT2_WITH_CUDA_SUPPORT")
+	#cmakedefine LIBFREENECT2_WITH_CUDA_SUPPORT
+	add_definitions("-DLIBFREENECT2_WITH_TEGRA_JPEG_SUPPORT")
+	#cmakedefine LIBFREENECT2_WITH_TEGRA_JPEG_SUPPORT
+	#add_definitions("-DLIBFREENECT2_THREADING_STDLIB")
+	#cmakedefine LIBFREENECT2_THREADING_STDLIB
+	add_definitions("-DLIBFREENECT2_THREADING_TINYTHREAD")
+	#cmakedefine LIBFREENECT2_THREADING_TINYTHREAD
+	INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+        INCLUDE_DIRECTORIES(include "/usr/local/cuda/include/")
+
+IF(ENABLE_TEGRA_JPEG AND EXISTS "/etc/nv_tegra_release")
+	FIND_LIBRARY(TEGRA_JPEG_LIBRARY jpeg PATHS /usr/lib/arm-linux-gnueabihf/tegra NO_DEFAULT_PATH)
+	  IF(NOT TEGRA_JPEG_LIBRARY)
+	    MESSAGE(FATAL_ERROR "Did not find Tegra JPEG library")
+	  ENDIF(NOT TEGRA_JPEG_LIBRARY)
+	INCLUDE_DIRECTORIES("${MY_DIR}/depends/nv_headers")
+ENDIF()
+FIND_PACKAGE(CUDA)
 find_package(freenect2 REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS roscpp rostime std_msgs sensor_msgs nodelet cv_bridge compressed_depth_image_transport depth_registration)
@@ -65,9 +97,9 @@ add_custom_target(additional_files_${PROJECT_NAME}
 )
 
 include_directories(include
-  ${catkin_INCLUDE_DIRS}
+ ${freenect2_INCLUDE_DIRS}
+${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIR}
-  ${freenect2_INCLUDE_DIRS}
 )
 
 if(DEPTH_REG_OPENCL)
@@ -80,16 +112,16 @@ add_definitions(-DK2_CALIB_PATH="${PROJECT_SOURCE_DIR}/data/")
 
 add_library(kinect2_bridge_nodelet SHARED src/kinect2_bridge.cpp)
 target_link_libraries(kinect2_bridge_nodelet
-  ${catkin_LIBRARIES}
+${freenect2_LIBRARY}  
+${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  ${freenect2_LIBRARY}
 )
 
 add_executable(kinect2_bridge src/kinect2_bridge.cpp)
 target_link_libraries(kinect2_bridge
-  ${catkin_LIBRARIES}
+${freenect2_LIBRARY}  
+${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  ${freenect2_LIBRARY}
 )
 
 #############

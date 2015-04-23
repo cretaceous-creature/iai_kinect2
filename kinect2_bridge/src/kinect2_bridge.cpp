@@ -30,7 +30,7 @@
 
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
-#include <std_msgs/Header.h>
+#include <std_msgs/Header.h>b
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
 #include <sensor_msgs/Image.h>
@@ -183,7 +183,7 @@ public:
         nextFrame += deltaT;
       }
 
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     for(size_t i = 0; i < threads.size(); ++i)
@@ -499,8 +499,8 @@ private:
       return false;
     }
 
-    device = freenect2.openDevice(sensor, packetPipeline);
-
+    //device = freenect2.openDevice(sensor, packetPipeline);
+    device = freenect2.openDefaultDevice();
     if(device == 0)
     {
       std::cout << "no device connected or failure opening the default one!" << std::endl;
@@ -799,7 +799,7 @@ private:
   {
     libfreenect2::FrameMap frames;
     libfreenect2::Frame *colorFrame;
-    cv::Mat color;
+    cv::Mat color(1080, 1920, CV_8UC3);
     std_msgs::Header header;
     std::vector<cv::Mat> images(COUNT);
     std::vector<Status> status(COUNT, UNSUBCRIBED);
@@ -814,8 +814,11 @@ private:
     header = createHeader(lastColor, lastDepth);
 
     colorFrame = frames[libfreenect2::Frame::Color];
-    color = cv::Mat(colorFrame->height, colorFrame->width, CV_8UC3, colorFrame->data);
-
+    unsigned char **pprgba = reinterpret_cast<unsigned char **>(colorFrame->data);
+    cv::Mat rgba(1080, 1920, CV_8UC4, pprgba[0]);
+    //cv::Mat color(1080, 1920, CV_8UC4);  //
+    cv::cvtColor(rgba, color, cv::COLOR_RGBA2BGR);
+   // color = cv::Mat(colorFrame->height, colorFrame->width, CV_8UC3, colorFrame->data);
     frame = frameColor++;
     lockColor.unlock();
 
